@@ -1,8 +1,8 @@
 {
-  "name": "Tooth Timer",
-  "short_name": "Tooth Timer",
+  "name": "It's Dentime",
+  "short_name": "Dentime",
   "description": "A simple 2-minute tooth brushing timer",
-  "start_url": "/",
+  "start_url": "/dentime",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
