@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tooth-timer-v1';
+const CACHE_NAME = 'dentime-v1';
 const urlsToCache = [
   '/',
   '/index.html',
