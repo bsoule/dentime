@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Tooth Timer</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --bg: #1a1a2e;
+      --inactive: #2d2d44;
+      --active: #7fdbda;
+      --text: #e8e8e8;
+      --text-dim: #888899;
+      --glow: rgba(127, 219, 218, 0.4);
+    }
+    
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      flex-shrink: 0;
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+    }
+    
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    
+    .grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 8px;
+      padding: 8px;
+      min-height: 0;
+    }
+    
+    .quadrant {
+      background: var(--inactive);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .quadrant.active {
+      background: var(--active);
+      box-shadow: 0 0 40px var(--glow), inset 0 0 30px rgba(255,255,255,0.1);
+    }
+    
+    .quadrant-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      transition: color 0.4s ease;
+    }
+    
+    .quadrant.active .quadrant-label {
+      color: var(--bg);
+    }
+    
+    .timer-display {
+      position: absolute;
+      font-size: 3rem;
+      font-weight: 700;
+      opacity: 0;
+      color: var(--bg);
+      transition: opacity 0.3s ease;
+    }
+    
+    .quadrant.active .timer-display {
+      opacity: 1;
+    }
+    
+    .controls {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    button {
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 14px 48px;
+      border: none;
+      border-radius: 100px;
+      background: var(--active);
+      color: var(--bg);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      letter-spacing: 0.02em;
+    }
+    
+    button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px var(--glow);
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .done-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      z-index: 100;
+    }
+    
+    .done-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .done-overlay .checkmark {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--active);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pop 0.4s ease;
+    }
+    
+    .done-overlay .checkmark svg {
+      width: 40px;
+      height: 40px;
+      stroke: var(--bg);
+      stroke-width: 3;
+      fill: none;
+    }
+    
+    .done-overlay p {
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+    
+    @keyframes pop {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <svg class="logo" viewBox="0 0 64 64" fill="none">
+      <path d="M32 8C24 8 20 12 18 16C16 12 12 8 8 12C4 16 6 24 8 32C10 40 14 56 20 56C24 56 26 48 28 40C29 36 30 32 32 32C34 32 35 36 36 40C38 48 40 56 44 56C50 56 54 40 56 32C58 24 60 16 56 12C52 8 48 12 46 16C44 12 40 8 32 8Z" fill="#7fdbda"/>
+      <ellipse cx="26" cy="24" rx="3" ry="4" fill="#1a1a2e" opacity="0.3"/>
+      <ellipse cx="38" cy="24" rx="3" ry="4" fill="#1a1a2e" opacity="0.3"/>
+    </svg>
+    <h1>Tooth Timer</h1>
+  </header>
+  
+  <div class="grid">
+    <div class="quadrant" data-quadrant="0">
+      <span class="quadrant-label">Upper Right</span>
+      <span class="timer-display">30</span>
+    </div>
+    <div class="quadrant" data-quadrant="1">
+      <span class="quadrant-label">Upper Left</span>
+      <span class="timer-display">30</span>
+    </div>
+    <div class="quadrant" data-quadrant="2">
+      <span class="quadrant-label">Lower Right</span>
+      <span class="timer-display">30</span>
+    </div>
+    <div class="quadrant" data-quadrant="3">
+      <span class="quadrant-label">Lower Left</span>
+      <span class="timer-display">30</span>
+    </div>
+  </div>
+  
+  <div class="controls">
+    <button id="startBtn">Start</button>
+  </div>
+  
+  <div class="done-overlay" id="doneOverlay">
+    <div class="checkmark">
+      <svg viewBox="0 0 24 24">
+        <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <p>All done!</p>
+    <button id="resetBtn">Again</button>
+  </div>
+
+  <script>
+    const quadrants = document.querySelectorAll('.quadrant');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const doneOverlay = document.getElementById('doneOverlay');
+    
+    let currentQuadrant = 0;
+    let secondsLeft = 30;
+    let interval = null;
+    let isRunning = false;
+    
+    // Create the completion sound using Web Audio API
+    function playDingSound() {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // First tone
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.frequency.value = 880;
+      osc1.type = 'sine';
+      gain1.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain1.gain.exponentialDecayTo?.(0.01, audioCtx.currentTime + 0.5) || 
+        gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      osc1.start(audioCtx.currentTime);
+      osc1.stop(audioCtx.currentTime + 0.5);
+      
+      // Second tone (higher, slightly delayed)
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.frequency.value = 1320;
+      osc2.type = 'sine';
+      gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.1);
+      gain2.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+      osc2.start(audioCtx.currentTime + 0.1);
+      osc2.stop(audioCtx.currentTime + 0.8);
+    }
+    
+    function updateDisplay() {
+      quadrants.forEach((q, i) => {
+        q.classList.toggle('active', i === currentQuadrant && isRunning);
+        q.querySelector('.timer-display').textContent = i === currentQuadrant ? secondsLeft : '30';
+      });
+    }
+    
+    function tick() {
+      secondsLeft--;
+      
+      if (secondsLeft <= 0) {
+        currentQuadrant++;
+        
+        if (currentQuadrant >= 4) {
+          // Done!
+          clearInterval(interval);
+          isRunning = false;
+          startBtn.disabled = false;
+          startBtn.textContent = 'Start';
+          quadrants.forEach(q => q.classList.remove('active'));
+          playDingSound();
+          doneOverlay.classList.add('visible');
+          return;
+        }
+        
+        secondsLeft = 30;
+      }
+      
+      updateDisplay();
+    }
+    
+    function start() {
+      if (isRunning) return;
+      
+      isRunning = true;
+      currentQuadrant = 0;
+      secondsLeft = 30;
+      startBtn.disabled = true;
+      startBtn.textContent = 'Brushing...';
+      
+      updateDisplay();
+      interval = setInterval(tick, 1000);
+    }
+    
+    function reset() {
+      doneOverlay.classList.remove('visible');
+      currentQuadrant = 0;
+      secondsLeft = 30;
+      isRunning = false;
+      startBtn.disabled = false;
+      startBtn.textContent = 'Start';
+      updateDisplay();
+    }
+    
+    startBtn.addEventListener('click', start);
+    resetBtn.addEventListener('click', reset);
+    
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
